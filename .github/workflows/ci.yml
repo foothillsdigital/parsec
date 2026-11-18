@@ -110,6 +110,30 @@ jobs:
       - name: Every Rust file states its licence and copyright
         run: scripts/check-headers.sh
 
+  # A release is the crate cargo packages, and it has to come out the same
+  # every time (release.yml). The script builds it twice from fresh
+  # checkouts; the package from this checkout, which has the submodules,
+  # must match them too, as it would for anyone rebuilding a release.
+  reproducible:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master
+        with:
+          toolchain: stable
+      - name: The crate packages the same twice, and with submodules
+        run: |
+          twice=$(scripts/package-twice.sh HEAD | cut -d' ' -f1)
+          cargo package --quiet -p parsec-html --locked --no-verify
+          here=$(sha256sum target/package/*.crate | cut -d' ' -f1)
+          echo "twice: $twice"
+          echo "here:  $here"
+          [ "$twice" = "$here" ]
+
   test:
     strategy:
       fail-fast: false

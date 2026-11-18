@@ -33,3 +33,40 @@ bug rather than a security problem. Please open an ordinary issue for it.
 There's no release yet, so for now fixes go to `main`. Once there is one,
 fixes go into the newest minor release. Until Parsec reaches 1.0, older
 releases don't get backports.
+
+## Verifying a release
+
+A release is a signed tag, and on its GitHub release page the crate
+(`parsec-html-VERSION.crate`), its `SHA256SUMS` and the provenance bundle
+(`parsec-vVERSION.intoto.jsonl`). Each can be checked on its own.
+
+**The tag** is signed with a maintainer's SSH key, listed in
+[`.github/allowed_signers`](.github/allowed_signers). Take that file from
+`main` rather than from the tag, as the release workflow does:
+
+```sh
+git fetch origin tag v0.1.0
+git show origin/main:.github/allowed_signers > allowed_signers
+git -c gpg.ssh.allowedSignersFile=allowed_signers tag -v v0.1.0
+```
+
+**The crate** was built by the release workflow from that tag, and GitHub
+signed a record of it:
+
+```sh
+gh attestation verify parsec-html-0.1.0.crate --repo parsec-html/parsec \
+  --signer-workflow parsec-html/parsec/.github/workflows/release.yml
+```
+
+**A rebuild** gives the same file, byte for byte. At the tag, run
+
+```sh
+git checkout v0.1.0
+scripts/package-twice.sh
+```
+
+It packages the crate twice from fresh checkouts, fails if they differ, and
+prints the SHA-256, which must match the release's `SHA256SUMS`. Any recent
+stable Rust gives the same package: cargo 1.99 and 1.101 do. CI runs the
+same script on every change, so a change that would break this fails there
+first.
