@@ -75,8 +75,16 @@ assert_eq!(doc.text(hits[0]), "one");
   The slow-input cases in `examples/hostile.rs`, like thousands of nested
   formatting elements (the pattern that runs Lexbor out of memory), take
   time in proportion to their length.
-- **One dependency** (`memchr`) and one `unsafe` block, with its reasoning
-  written beside it.
+- **A C API**: `libparsec`, shared and static, with a `parsec.h` that
+  cbindgen generates, and pkg-config and CMake files. Handles are opaque,
+  nodes are numbers that can't dangle, every call is NULL-safe and returns
+  an error code instead of crashing, and documents can be read from many
+  threads at once. Each release comes with a package for Linux, macOS and
+  Windows, on x86-64 and ARM; Lexbor's own packages are x86-64 only. The
+  C test runs on all three in CI, and under AddressSanitizer on Linux.
+- **One dependency** (`memchr`) and one `unsafe` block in the parser, with
+  its reasoning written beside it. The C API's `unsafe` is all at the
+  boundary, where C's pointers come in.
 - **WHATWG URL**, in `crates/parsec-url`: every getter and setter the
   `URL` interface has, `URLSearchParams`, IDNA and Punycode, built on
   Servo's `url` crate. `cargo test` runs the web-platform-tests URL suite,
@@ -159,7 +167,7 @@ every module Lexbor has, and then go past it:
 | WHATWG Encoding, 40 encodings | yes | yes, through encoding_rs, with WPT pass counts published |
 | WHATWG URL | yes, no WPT count published | yes, with WPT pass counts published |
 | CSS parser and CSSOM | yes | planned, with `var()`, media queries and computed values |
-| C API | yes | planned, with prebuilt libraries for Linux, macOS and Windows |
+| C API | yes, x86-64 packages | yes, with packages for Linux, macOS and Windows on x86-64 and ARM |
 | Python | through selectolax | yes, free-threaded too |
 | WebAssembly | through bindings | planned, built here |
 
@@ -194,9 +202,35 @@ From Python, until the wheels go to PyPI with 0.1.0, build it from git
 pip install "git+https://github.com/parsec-html/parsec#subdirectory=bindings/python"
 ```
 
+From C, build the library and its header, pkg-config and CMake files
+into a folder of your choice, then `find_package(parsec)` or
+`pkg-config parsec`:
+
+```sh
+crates/parsec-capi/package.sh "$HOME/.local/parsec"
+```
+
+```c
+#include <parsec.h>
+
+parsec_document *doc;
+parsec_parse(html, len, 0, &doc);
+parsec_selector *sel;
+parsec_selector_compile("li.hit", 6, &sel, NULL);
+parsec_node hit = parsec_select_first(doc, sel, parsec_root());
+char *text = parsec_text(doc, hit, NULL);
+/* ... */
+parsec_string_free(text);
+parsec_selector_free(sel);
+parsec_document_free(doc);
+```
+
+The wiki's [C API](https://github.com/parsec-html/parsec/wiki/C-API)
+page has the rest.
+
 The [wiki](https://github.com/parsec-html/parsec/wiki) is where the
 documentation lives: how parsing works, every option, the selector list,
-and a guide for moving from Lexbor.
+and a guide for moving from Lexbor, call by call, in C and Rust.
 
 ## Working on it
 

@@ -68,9 +68,10 @@ Every CI run publishes the conformance counts in its summary.
 
 ## M4. Every way in
 
-- A C API with a generated header, pkg-config and CMake files, and
-  prebuilt libraries for Linux, macOS and Windows on x86-64 and ARM.
-- A guide for moving from Lexbor, call by call.
+- Done: a C API with a generated header, pkg-config and CMake files, and
+  prebuilt libraries for Linux, macOS and Windows on x86-64 and ARM,
+  attached to each release.
+- Done: a guide for moving from Lexbor, call by call, on the wiki.
 - Python wheels, including free-threaded builds. The package is done, in
   `bindings/python`; its wheels go to PyPI with 0.1.0.
 - WebAssembly for npm.
