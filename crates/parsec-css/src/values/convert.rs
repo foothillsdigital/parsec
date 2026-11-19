@@ -919,14 +919,14 @@ fn mix2(space: Space, hue: &str, a: &Absolute, b: &Absolute, t: f64) -> Absolute
     };
     let (wa, wb) = (aa.or(ba).unwrap_or(1.0), ba.or(aa).unwrap_or(1.0));
     let mut out = [None; 3];
-    for i in 0..3 {
+    for (i, slot) in out.iter_mut().enumerate() {
         let (x, y) = match (a.channels[i], b.channels[i]) {
             (None, None) => continue,
             (Some(x), None) => (x, x),
             (None, Some(y)) => (y, y),
             (Some(x), Some(y)) => (x, y),
         };
-        out[i] = Some(if Some(i) == hue_at {
+        *slot = Some(if Some(i) == hue_at {
             let (mut x, mut y) = (x.rem_euclid(360.0), y.rem_euclid(360.0));
             let d = y - x;
             match hue {
