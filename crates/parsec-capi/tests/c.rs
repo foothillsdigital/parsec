@@ -21,6 +21,11 @@ fn the_c_test_program_passes() {
         .args(["-std=c99", "-Wall", "-Wextra", "-Werror", "-pedantic"])
         .arg("-I")
         .arg(here.join("include"))
+        .arg(format!(
+            "-DHTML5LIB_ENCODING=\"{}\"",
+            here.join("../parsec/tests/html5lib-tests/encoding")
+                .display()
+        ))
         .arg(here.join("tests/capi.c"))
         .arg("-L")
         .arg(lib_dir)
