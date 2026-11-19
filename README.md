@@ -92,6 +92,16 @@ assert_eq!(doc.text(hits[0]), "one");
   once more in the declared encoding, as a browser reloads. You get the
   document, the encoding and how sure it is. It passes all 82 html5lib
   `encoding/` cases that don't need JavaScript.
+- **Bytes as they arrive, too.** `parsec_encoding::ByteParser` takes the
+  page a piece at a time, straight off the socket. It holds back the first
+  bytes only until it knows the encoding (a byte order mark, your HTTP
+  `charset`, a whole `<meta>`, or 1,024 bytes), then decodes each piece and
+  parses it as it comes. However the bytes are cut, you get what
+  `parse_bytes` gives for the whole: the tests cut every html5lib encoding
+  input at every byte, and the WPT multi-byte pages at 49,000 places, and
+  compare. While the encoding is only a guess it keeps the
+  bytes, in case a late `<meta>` means parsing again, so pass the HTTP
+  `charset` when you have it.
 - **Every encoding the web uses**, decoding and encoding, from
   [encoding_rs](https://github.com/hsivonen/encoding_rs), Firefox's own
   implementation of the WHATWG Encoding Standard. Against the
@@ -235,6 +245,13 @@ second on dense GBK, where Parsec reaches 501, so on that one Lexbor is
 ahead until you count the conversion. A UTF-8 page Parsec only validates
 and then parses where it is, at about 60 GB a second.
 
+Streaming costs a little. Feeding those transcoded pages to `ByteParser`
+4 KB at a time, with the encoding given as HTTP would give it, runs at 91
+to 95% of `parse_bytes` on the whole page: 502 to 555 MB a second on
+wikipedia-population and 1,284 to 1,451 on nytimes, against 533 to 604
+and 1,381 to 1,597. Left to sniff, it keeps the bytes in case a late
+`<meta>` changes the encoding, and that brings it to 83 to 91%.
+
 URLs as well. Over the 83,113 `href` and `src` values on those 13 pages,
 each resolved against its page, Parsec takes 107 ns a URL. Ada, the C++
 parser in Node.js, takes 142 and Lexbor 243, so Parsec is 1.33 times as
@@ -283,6 +300,7 @@ every module Lexbor has, and then go past it:
 | HTML parsing, fragments | yes | yes |
 | Bytes in, encoding sniffed | yes | yes, `parse_bytes` |
 | Chunked input | yes | yes, the same tree from any split, checked at every cut of every test |
+| Bytes streamed, encoding sniffed as they arrive | no, `lxb_engine_parse` takes the whole page | yes, `ByteParser`, the same as `parse_bytes` for any split |
 | Parse errors with line and column | pointers only | yes, with the spec's names; all 7,042 html5lib tokenizer error cases match |
 | Source positions on nodes and attributes | no ([lexbor#374](https://github.com/lexbor/lexbor/issues/374)) | yes, byte ranges into your input with line and column |
 | Linear worst case | no ([#340](https://github.com/lexbor/lexbor/issues/340)) | planned |
