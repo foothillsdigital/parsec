@@ -13,6 +13,13 @@ from the Unicode Character Database (https://www.unicode.org/ucd/),
 © 1991-2025 Unicode, Inc., licensed under the Unicode License v3
 (https://www.unicode.org/license.txt).
 
+Parsec's CSS module includes data generated from @webref/css
+(https://github.com/w3c/webref), the CSS definitions scraped from the
+specifications: every property's grammar, initial value, inheritance and
+longhands, in crates/parsec-css/src/values/generated.rs, from
+crates/parsec-css/data/webref/css.json, Copyright (c) 2020 World Wide Web
+Consortium, under the MIT License; see the LICENSE file in that directory.
+
 Parsec's tests use test data that is not part of the library and is
 licensed under its own terms:
 
@@ -33,3 +40,8 @@ licensed under its own terms:
 - css-tokenizer-tests (https://github.com/romainmenke/css-tokenizer-tests),
   in crates/parsec-css/tests/css-tokenizer-tests, Copyright 2026 Romain
   Menke, under the MIT License; see the LICENSE file in that directory.
+- The CSS parsing tests from web-platform-tests
+  (https://github.com/web-platform-tests/wpt), as the cases extracted
+  into crates/parsec-css/tests/wpt-values, Copyright web-platform-tests
+  contributors, under the 3-Clause BSD License; see the LICENSE.md file
+  in that directory.
