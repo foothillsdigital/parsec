@@ -20,7 +20,7 @@ share across threads, XPath, selectors for everything a static page can
 decide, and no use-after-free bugs, because the parser is memory-safe
 Rust.
 
-Parsec 0.1.0 is out, on crates.io, PyPI and npm as `parsec-html`. This
+Parsec is on crates.io, PyPI and npm as `parsec-html`. This
 page says what works today and what's on the way, and the line between
 the two is kept sharp.
 

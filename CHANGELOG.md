@@ -4,6 +4,149 @@ Every change people using Parsec would notice, newest first. Version
 numbers follow [Semantic Versioning](https://semver.org/); until 1.0, a
 minor release can break the API and a patch release won't.
 
+## 0.2.0
+
+A security release. A page could crash any program using Parsec
+0.1.0: a few thousand nested `<template>`s overflowed the stack, which
+nothing can catch, and ended the process in every binding. That's
+fixed, along with inputs built to take quadratic time, a buffer that
+could overflow on huge input, panics in XPath, edit calls that wrote
+names as markup, positions in the C API, wheels 0.1.0 didn't ship, and
+docs that said more than the code did. Upgrade if Parsec reads pages
+you don't control.
+
+It's 0.2.0, not 0.1.1, because the edit API changed shape: see
+[Changed](#changed). Until 1.0, a minor release can break the API and
+a patch release won't.
+
+### Changed
+
+- `Document::create_element` returns `Result<NodeId, EditError>`, and
+  `set_attr`, `add_attr`, `set_attrs`, `rename` and `rename_attr`
+  return `Result<(), EditError>`. A name `createElement` or
+  `setAttribute` would refuse (empty, or with whitespace, `/`, `>`,
+  `=`, a quote or a control character in it) is the new
+  `EditError::InvalidName`, instead of being written out as markup.
+  `create_element_as_parsed` and `add_attr_as_parsed` take a name as
+  given, for copying a parsed node into another document, as
+  `importNode` does: the parser makes names like `a"b` that the checks
+  refuse ([#136](https://github.com/parsec-html/parsec/pull/136)).
+- `MatchOptions` and `MatchTimeout` have a new field, `max_steps`: a
+  limit on selector matching that needs no clock, so it works on wasm32
+  too (#136). Code that builds either with a struct literal needs
+  `..Default::default()`.
+- In C, `parsec_create_element` and `parsec_attr_set` refuse those
+  names with `PARSEC_NO_NODE` and `PARSEC_ERR_INVALID`; in Python,
+  `create_node` and setting an attribute raise `ValueError`; in
+  JavaScript, `setAttribute` throws (#136).
+
+### Parser
+
+- Nested `<template>`s at the end of the input no longer recurse, so no
+  page can overflow the stack: a hundred thousand of them parse on a
+  256 KB thread. Nothing else in the parser recurses on what a page
+  holds either (#136).
+- A page full of NUL bytes, each of which becomes three, can no longer
+  push the parse buffer past 2^30 bytes, where it panicked or read
+  another string (#136).
+- Checking a tag's attributes for duplicates is linear, and the time
+  budget fires inside a long run of them: 100,000 attributes on one tag
+  took 12.8 s and take 10 ms. Attributes merged onto `<body>` and
+  `<html>` were quadratic the same way (#136).
+- `</body>`, `</html>` and heading end tags under very deep nesting,
+  `:has()` with more than one compound, and nested `:is()` no longer
+  take quadratic time, and `line_col` keeps a line index instead of
+  counting from the start each call (#136).
+- `pretty` stops indenting past 100 levels, so a deep tree can't make a
+  string of gigabytes, and writes the newline the parser drops after
+  `<pre>`, `<textarea>` and `<listing>` (#136).
+- `max_depth: Some(0)` keeps the `<html>` element's children at depth 1,
+  as `Some(1)` does, instead of dropping them (#136).
+
+### XPath
+
+- A scope past the end of the document, a node made after the index,
+  an empty index, a subtree index used from outside it, or another
+  document's index is an `XPathError` instead of a panic, or, for the
+  last, an answer from the wrong document (#136).
+- The work limit counts `lang()`'s climbs and string values' text, and
+  is lower, so no single query runs for tens of seconds (#136).
+
+### CSS
+
+- A stylesheet or `style` attribute nested tens of thousands deep no
+  longer overflows the stack. Functions, blocks and rules nest at most
+  `MAX_NESTING` (256) deep, counted together; anything deeper is dropped
+  as it's read, and a rule dropped that way is an `InvalidRule` error.
+  The cascade looks 128 rules deep
+  ([#128](https://github.com/parsec-html/parsec/pull/128)).
+- `var()` substitution copies in at most 1 MiB, so custom properties
+  that double each other can't take gigabytes and tens of seconds. Past
+  that the value is invalid at computed-value time (#128).
+- Nested style rules' selectors, with their parents written in, stop at
+  64 KiB, and a lone parent is written in without `:is()`, which matched
+  in time that doubled per level of nesting (#128).
+- `@layer` names are looked up in a map and may have 64 parts, so a long
+  dotted name or deep `@layer` nesting no longer takes minutes (#128).
+- `parse_block_contents` on rules with no `;` between them, `a{}a{}…`,
+  is linear instead of quadratic, and so is `parse_stylesheet_deep` on
+  the same inside a block (#128).
+- `cargo doc` builds every crate with warnings denied, in CI too (#128).
+
+### C API
+
+- With `PARSEC_SPANS` or `PARSEC_ERRORS`, spans and error offsets index
+  the bytes you passed even when they aren't valid UTF-8; before, they
+  counted the U+FFFD copy and could point past your buffer
+  ([#129](https://github.com/parsec-html/parsec/pull/129)).
+- `parsec_line_col` with an offset near `SIZE_MAX` gives an answer
+  instead of a panic or a wrong one (#129).
+- A `parsec_select` callback that changes the document gets
+  `PARSEC_ERR_BUSY`; one that frees it has it freed when `parsec_select`
+  returns (#129).
+- `parsec.h` defines `PARSEC_VERSION` and its major, minor and patch
+  parts, and says what's undefined about `parsec_string_free` and what
+  ends the process (#129).
+
+### URL
+
+- A host label over 4,000 code points (`punycode::MAX_LABEL`) fails
+  instead of taking seconds of Punycode work. All 4,565 WPT URL cases
+  still pass (#129).
+
+### Python
+
+- Wheels for CPython 3.14 and 3.15 with the GIL on macOS and Windows,
+  which 0.1.0 didn't have, and the release job fails if any expected
+  wheel is missing ([#132](https://github.com/parsec-html/parsec/pull/132)).
+- Wheels and the sdist carry `LICENSE` and `NOTICE`, and PyPI lists each
+  supported Python version (#132).
+- `Node.strip_tags()` and `Node.unwrap_tags()` include the node itself
+  when it matches, as selectolax does (#132).
+- The docs say what `decompose()` refuses, how `line_col()` counts
+  without positions, and how XPath numbers become strings next to lxml
+  (#132).
+
+### WebAssembly
+
+- The TypeScript types compile without `lib: esnext.disposable`
+  ([#130](https://github.com/parsec-html/parsec/pull/130)).
+- `package.json` exports `./package.json` and has a `main` (#130).
+- The README says when to call `free()` or use `using`: in a loop that
+  doesn't yield, the garbage collector never gets to run (#130).
+
+### Packaging and docs
+
+- crates.io pages show the header image, and their links work
+  ([#131](https://github.com/parsec-html/parsec/pull/131)).
+- The crates no longer carry their test suites and data (#131).
+- The README's claims are corrected: two dependencies, not one; what
+  can still end a C program; which inputs are still quadratic; the
+  WebAssembly size; and WPT totals with their skipped cases (#130).
+
+Fixes to the parser core itself arrive with the next sync from Netweir,
+which adds them to this entry.
+
 ## 0.1.0
 
 The first release. It's on crates.io, PyPI and npm as `parsec-html`, and

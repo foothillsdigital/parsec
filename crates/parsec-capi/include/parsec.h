@@ -55,9 +55,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#define PARSEC_VERSION "0.1.0"
+#define PARSEC_VERSION "0.2.0"
 #define PARSEC_VERSION_MAJOR 0
-#define PARSEC_VERSION_MINOR 1
+#define PARSEC_VERSION_MINOR 2
 #define PARSEC_VERSION_PATCH 0
 
 // Parse with scripting on, as a browser with JavaScript does: `<noscript>`
@@ -228,7 +228,7 @@ typedef uint32_t parsec_xpath_type;
 extern "C" {
 #endif // __cplusplus
 
-// The library's version, such as "0.1.0", NUL-terminated and static.
+// The library's version, such as "0.2.0", NUL-terminated and static.
 const char *parsec_version(void);
 
 // A sentence saying what `status` means, NUL-terminated and static.
