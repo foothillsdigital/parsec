@@ -102,6 +102,12 @@ The JavaScript lexer has one too, from `crates/parsec-js`:
 cargo +nightly fuzz run lex
 ```
 
+So does the XML parser, from `crates/parsec-xml`:
+
+```
+cargo +nightly fuzz run xml
+```
+
 Each conformance suite writes its counts when `CONFORMANCE_DIR` is set,
 and `conformance/baseline.json` holds the last release's. CI's
 `conformance` job compares the two on every pull request, and a release
