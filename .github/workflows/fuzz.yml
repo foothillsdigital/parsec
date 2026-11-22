@@ -32,6 +32,8 @@ jobs:
             target: lex
           - crate: parsec-js
             target: parse
+          - crate: parsec-js
+            target: data
           - crate: parsec-xml
             target: xml
     steps:

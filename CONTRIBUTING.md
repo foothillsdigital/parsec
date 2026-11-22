@@ -101,11 +101,13 @@ The fuzz target builds on nightly with
 cargo +nightly fuzz run parse
 ```
 
-The JavaScript lexer and parser have one each, from `crates/parsec-js`:
+The JavaScript lexer and parser have one each, and reading page state
+a third, from `crates/parsec-js`:
 
 ```
 cargo +nightly fuzz run lex
 cargo +nightly fuzz run parse
+cargo +nightly fuzz run data
 ```
 
 So does the XML parser, from `crates/parsec-xml`:
